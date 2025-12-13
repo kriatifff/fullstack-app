@@ -1,0 +1,40 @@
+{
+  "name": "backend-starter-kit",
+  "version": "1.0.0",
+  "description": "A backend starter kit with Express, Prisma, and PostgreSQL.",
+  "main": "dist/server.js",
+  "scripts": {
+    "start": "node dist/server.js",
+    "dev": "nodemon src/server.ts",
+    "build": "tsc",
+    "postinstall": "prisma generate",
+    "prisma:migrate-dev": "prisma migrate dev",
+    "prisma:generate": "prisma generate",
+    "prisma:studio": "prisma studio"
+  },
+  "keywords": [
+    "express",
+    "prisma",
+    "postgresql",
+    "typescript",
+    "backend",
+    "starter-kit"
+  ],
+  "author": "AI Assistant",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "^5.x.x",
+    "cors": "^2.x.x",
+    "dotenv": "^16.x.x",
+    "express": "^4.x.x"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.x.x",
+    "@types/express": "^4.x.x",
+    "@types/node": "^20.x.x",
+    "nodemon": "^3.x.x",
+    "prisma": "^5.x.x",
+    "ts-node": "^10.x.x",
+    "typescript": "^5.x.x"
+  }
+}

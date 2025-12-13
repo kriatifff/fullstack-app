@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  name    String   @id @unique
+  persons Person[]
+
+  @@map("Role")
+}
+
+model Person {
+  id                 String              @id @default(uuid())
+  name               String
+  roleName           String
+  capacityPerWeek    Float
+  active             Boolean
+  isExternal         Boolean
+  rateInternal       Int
+  rateExternal       Int
+  photo              String?
+  role               Role                @relation(fields: [roleName], references: [name])
+  projectWriteOffs   ProjectWriteOff[]
+  assignments        Assignment[]
+  vacations          Vacation[]
+  projectMembers     ProjectMember[]
+  projectMemberRates ProjectMemberRate[]
+
+  @@map("Person")
+}
+
+model Project {
+  id                  String              @id @default(uuid())
+  name                String
+  status              String
+  color               String
+  budgetWithVAT       Float
+  projectType         String
+  costEditable        Float
+  costEditableTouched Boolean
+  startDate           DateTime
+  endDate             DateTime
+  isArchived          Boolean
+  serviceName         String?
+  dealType            String?
+  agreementType       String?
+  comments            String?
+  contracts           Contract[]
+  projectWriteOffs    ProjectWriteOff[]
+  assignments         Assignment[]
+  projectMembers      ProjectMember[]
+  projectMemberRates  ProjectMemberRate[]
+
+  @@map("Project")
+}
+
+model Contract {
+  id        String   @id @default(uuid())
+  projectId String
+  date      DateTime
+  amount    Float
+  vatMode   String
+  project   Project  @relation(fields: [projectId], references: [id])
+
+  @@map("Contract")
+}
+
+model ProjectWriteOff {
+  id        String   @id @default(uuid())
+  projectId String
+  personId  String
+  month     String
+  hours     Int
+  type      String
+  project   Project  @relation(fields: [projectId], references: [id])
+  person    Person   @relation(fields: [personId], references: [id])
+
+  @@map("ProjectWriteOff")
+}
+
+model Assignment {
+  id        String   @id @default(uuid())
+  personId  String
+  projectId String
+  weekStart DateTime
+  fte       Float
+  factHours Int?
+  person    Person   @relation(fields: [personId], references: [id])
+  project   Project  @relation(fields: [projectId], references: [id])
+
+  @@map("Assignment")
+}
+
+model Vacation {
+  id        String   @id @default(uuid())
+  personId  String
+  weekStart DateTime
+  person    Person   @relation(fields: [personId], references: [id])
+
+  @@map("Vacation")
+}
+
+model ProjectMember {
+  projectId String
+  personId  String
+  project   Project  @relation(fields: [projectId], references: [id])
+  person    Person   @relation(fields: [personId], references: [id])
+
+  @@id([projectId, personId])
+  @@map("ProjectMember")
+}
+
+model ProjectMemberRate {
+  projectId String
+  personId  String
+  rate      Int
+  project   Project  @relation(fields: [projectId], references: [id])
+  person    Person   @relation(fields: [personId], references: [id])
+
+  @@id([projectId, personId])
+  @@map("ProjectMemberRate")
+}
