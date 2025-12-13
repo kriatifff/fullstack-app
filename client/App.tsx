@@ -1,4 +1,4 @@
-
+import { apiGetState, apiSaveState } from "./api";
 import React, { useState, useEffect, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import { 
@@ -8,7 +8,9 @@ import { Person, Project, Assignment, ProjectTeamsMap, VacationsMap, ViewMode, P
 import { Button, Modal, Input, Select, Badge } from './components/UI';
 import { TeamView, ProjectView, AnalyticsTeamView, PersonDetailPage, ProjectDetailPage, AnalyticsWriteOffsView } from './components/Views';
 import { FinancialAnalyticsView } from './components/Analytics';
-import { 
+import { apiGetState, apiSaveState } from "./api";
+import { apiGetState, apiSaveState } from './api';
+  
   startOfISOWeek, addWeeks, fmtISO, rndId, isWeekEnded, fteToHours, personWeekTotal, 
   effectiveFactHours, personWeekFactTotal, fmtMoney, VAT_RATE, parseDate, addDays,
   sumFactForPersonProject, yearWeekMondays
@@ -77,6 +79,40 @@ const App = () => {
       return out;
     } catch { return {}; }
   });
+  const [hydrated, setHydrated] = useState(false);
+
+  const [hydrated, setHydrated] = useState(false);
+useEffect(() => {
+  (async () => {
+    try {
+      const remote = await apiGetState();
+      if (remote) {
+        setPeople(remote.people ?? seedPeople);
+        setRoles(remote.roles ?? ["dev","designer","manager","pm","qa","other"]);
+        setProjects(remote.projects ?? seedProjects);
+        setAssignments(remote.assignments ?? []);
+
+        // Восстанавливаем Set-ы
+        const toSetMap = (raw: any) => {
+          const out: any = {};
+          for (const k in (raw || {})) out[k] = new Set(raw[k] || []);
+          return out;
+        };
+
+        setProjectTeams(toSetMap(remote.projectTeams));
+        setProjectWriteOffTeams(toSetMap(remote.projectWriteOffTeams));
+        setProjectMemberHours(remote.projectMemberHours ?? {});
+        setVacations(toSetMap(remote.vacations));
+        setTeamOrder(remote.teamOrder ?? []);
+      }
+    } catch (e) {
+      console.warn("Failed to load remote state:", e);
+    } finally {
+      setHydrated(true);
+    }
+  })();
+}, []);
+
   
   // Custom Sort Order for Team
   const [teamOrder, setTeamOrder] = useState<string[]>(() => {
@@ -96,6 +132,75 @@ const App = () => {
       setTeamOrder([...validOrder, ...newIds]);
     }
   }, [people.length]); // Dependency on people count mainly
+
+useEffect(() => {
+  (async () => {
+    try {
+      const remote = await apiGetState();
+      if (remote) {
+        const toSetMap = (raw: any) => {
+          const out: any = {};
+          for (const k in (raw || {})) out[k] = new Set(raw[k] || []);
+          return out;
+        };
+
+        setPeople(remote.people ?? seedPeople);
+        setRoles(remote.roles ?? ["dev","designer","manager","pm","qa","other"]);
+        setProjects(remote.projects ?? seedProjects);
+        setAssignments(remote.assignments ?? []);
+        setProjectTeams(toSetMap(remote.projectTeams));
+        setProjectWriteOffTeams(toSetMap(remote.projectWriteOffTeams));
+        setProjectMemberHours(remote.projectMemberHours ?? {});
+        setVacations(toSetMap(remote.vacations));
+        setTeamOrder(remote.teamOrder ?? []);
+      }
+    } catch (e) {
+      console.warn("Failed to load remote state:", e);
+    } finally {
+      setHydrated(true);
+    }
+  })();
+}, []);
+
+useEffect(() => {
+  if (!hydrated) return; // <-- это “не перетираем сервер localStorage при старте”
+
+  const toSerializable = (raw: any) => {
+    const out: any = {};
+    for (const k in (raw || {})) out[k] = Array.from(raw[k] || []);
+    return out;
+  };
+
+  const payload = {
+    people,
+    roles,
+    projects,
+    assignments,
+    projectTeams: toSerializable(projectTeams),
+    projectWriteOffTeams: toSerializable(projectWriteOffTeams),
+    projectMemberHours,
+    vacations: toSerializable(vacations),
+    teamOrder,
+  };
+
+  const t = setTimeout(() => {
+    apiSaveState(payload).catch((e) => console.warn("saveState failed", e));
+  }, 800);
+
+  return () => clearTimeout(t);
+}, [
+  hydrated,
+  people,
+  roles,
+  projects,
+  assignments,
+  projectTeams,
+  projectWriteOffTeams,
+  projectMemberHours,
+  vacations,
+  teamOrder,
+]);
+
 
   // Persistence
   useEffect(() => { localStorage.setItem('pw_people', JSON.stringify(people)); }, [people]);
