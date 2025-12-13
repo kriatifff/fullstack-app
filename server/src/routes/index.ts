@@ -1,3 +1,4 @@
+import stateRoutes from "./stateRoutes";
 import { Router } from 'express';
 import roleRoutes from './roleRoutes';
 import personRoutes from './personRoutes';
@@ -11,6 +12,7 @@ import projectMemberRateRoutes from './projectMemberRateRoutes';
 
 const router = Router();
 
+router.use("/state", stateRoutes);
 router.use('/roles', roleRoutes);
 router.use('/people', personRoutes);
 router.use('/projects', projectRoutes);
