@@ -1,6 +1,5 @@
 import { apiGetState, apiSaveState } from "./api";
 import React, { useState, useEffect, useMemo } from 'react';
-import { createRoot } from 'react-dom/client';
 import { 
   Users, Briefcase, BarChart2, Calendar, LayoutGrid, Plus, ChevronLeft, ChevronRight, LogOut, Check, Trash2, X, Edit2, Save, Upload
 } from 'lucide-react';
@@ -172,37 +171,46 @@ if (state) {
     }
   })();
 }, []);
+
 useEffect(() => {
-  (async () => {
-    try {
-      const remote = await apiGetState();
-      const state = (remote && (remote as any).data) ? (remote as any).data : remote;
+  if (!hydrated) return;
 
-      if (state) {
-        const toSetMap = (raw: any) => {
-          const out: any = {};
-          for (const k in (raw || {})) out[k] = new Set(raw[k] || []);
-          return out;
-        };
+  const toSerializable = (raw: any) => {
+    const out: any = {};
+    for (const k in (raw || {})) out[k] = Array.from(raw[k] || []);
+    return out;
+  };
 
-        setPeople(state.people ?? seedPeople);
-        setRoles(state.roles ?? ["dev", "designer", "manager", "pm", "qa", "other"]);
-        setProjects(state.projects ?? seedProjects);
-        setAssignments(state.assignments ?? []);
+  const payload = {
+    people,
+    roles,
+    projects,
+    assignments,
+    projectTeams: toSerializable(projectTeams),
+    projectWriteOffTeams: toSerializable(projectWriteOffTeams),
+    projectMemberHours,
+    vacations: toSerializable(vacations),
+    teamOrder,
+  };
 
-        setProjectTeams(toSetMap(state.projectTeams));
-        setProjectWriteOffTeams(toSetMap(state.projectWriteOffTeams));
-        setProjectMemberHours(state.projectMemberHours ?? {});
-        setVacations(toSetMap(state.vacations));
+  const t = setTimeout(() => {
+    apiSaveState(payload).catch((e) => console.warn("saveState failed", e));
+  }, 800);
 
-        setTeamOrder(state.teamOrder ?? []);
-      }
-    } catch (e) {
-      console.warn("Failed to load remote state:", e);
-    } finally {
-      setHydrated(true);
-    }
-  })();
+  return () => clearTimeout(t);
+}, [
+  hydrated,
+  people,
+  roles,
+  projects,
+  assignments,
+  projectTeams,
+  projectWriteOffTeams,
+  projectMemberHours,
+  vacations,
+  teamOrder,
+]);
+
 
   if (!hydrated) return; // <-- это “не перетираем сервер localStorage при старте”
 
@@ -761,7 +769,5 @@ const TabButton = ({ active, onClick, children, icon: Icon }: any) => (
 
 const UserIcon = Users;
 
-const root = createRoot(document.getElementById('root')!);
-root.render(<App />);
 
 export default App;
