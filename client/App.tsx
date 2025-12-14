@@ -7,16 +7,19 @@ import { Person, Project, Assignment, ProjectTeamsMap, VacationsMap, ViewMode, P
 import { Button, Modal, Input, Select, Badge } from './components/UI';
 import { TeamView, ProjectView, AnalyticsTeamView, PersonDetailPage, ProjectDetailPage, AnalyticsWriteOffsView } from './components/Views';
 import { FinancialAnalyticsView } from './components/Analytics';
-import { apiGetState, apiSaveState } from "./api";  
 import {
   effectiveFactHours,
   personWeekFactTotal,
   fmtMoney,
   VAT_RATE,
+  startOfISOWeek,
+  addWeeks,
+  fmtISO,
   parseDate,
   addDays,
   sumFactForPersonProject,
-  yearWeekMondays
+  yearWeekMondays,
+  rndId
 } from './utils';
 
 
@@ -84,14 +87,24 @@ const App = () => {
     } catch { return {}; }
   });
   const [hydrated, setHydrated] = useState(false);
+// Custom Sort Order for Team
+const [teamOrder, setTeamOrder] = useState<string[]>(() => {
+  try { return JSON.parse(localStorage.getItem('pw_teamOrder') || '[]'); } catch { return []; }
+});
 
+// Hydration: load persisted state from backend once on mount.
+// Important: we set `hydrated=true` only after this finishes, so autosave can't overwrite the server on first paint.
 useEffect(() => {
+  let cancelled = false;
+
   (async () => {
     try {
       const remote = await apiGetState();
+
+      // API may return either `{ data: {...} }` (Prisma row) or the raw state object itself.
       const state = (remote && (remote as any).data) ? (remote as any).data : remote;
 
-      if (state) {
+      if (!cancelled && state) {
         const toSetMap = (raw: any) => {
           const out: any = {};
           for (const k in (raw || {})) out[k] = new Set(raw[k] || []);
@@ -107,68 +120,33 @@ useEffect(() => {
         setProjectWriteOffTeams(toSetMap(state.projectWriteOffTeams));
         setProjectMemberHours(state.projectMemberHours ?? {});
         setVacations(toSetMap(state.vacations));
-
-        // Если у тебя есть teamOrder:
         setTeamOrder(state.teamOrder ?? []);
       }
     } catch (e) {
       console.warn("Failed to load remote state:", e);
     } finally {
-      setHydrated(true);
+      if (!cancelled) setHydrated(true);
     }
-};
+  })();
 
-
-
-  
-  // Custom Sort Order for Team
-  const [teamOrder, setTeamOrder] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem('pw_teamOrder') || '[]'); } catch { return []; }
-};
-
-  // Ensure team order consistency
-  useEffect(() => {
-    const allIds = people.map(p => p.id);
-    const existingIds = new Set(teamOrder);
-    const newIds = allIds.filter(id => !existingIds.has(id));
-    
-    // Remove deleted
-    const validOrder = teamOrder.filter(id => allIds.includes(id));
-    
-    if (newIds.length > 0 || validOrder.length !== teamOrder.length) {
-      setTeamOrder([...validOrder, ...newIds]);
-    }
-  }, [people.length]); // Dependency on people count mainly
-
-  useEffect(() => {
-    (async () => {
-    try {
-     const remote = await apiGetState();
-const state = (remote && (remote as any).data) ? (remote as any).data : remote;
-
-const toSetMap = (raw: any) => {
-  const out: any = {};
-  for (const k in (raw || {})) out[k] = new Set(raw[k] || []);
-  return out;
-};
-
-if (state) {
-  setPeople(remote.people ?? seedPeople);
-  setRoles(remote.roles ?? ["dev","designer","manager","pm","qa","other"]);
-  setProjects(remote.projects ?? seedProjects);
-  setAssignments(remote.assignments ?? []);
-  setProjectTeams(toSetMap(remote.projectTeams));
-  setProjectWriteOffTeams(toSetMap(remote.projectWriteOffTeams));
-  setProjectMemberHours(remote.projectMemberHours ?? {});
-  setVacations(toSetMap(remote.vacations));
-  setTeamOrder(remote.teamOrder ?? []);
-}
-    } catch (e) {
-      console.warn("Failed to load remote state:", e);
-    } finally {
-      setHydrated(true);
-   });
+  return () => { cancelled = true; };
 }, []);
+
+// Ensure team order consistency (remove deleted IDs + append new ones)
+useEffect(() => {
+  const allIds = people.map(p => p.id);
+
+  const existingIds = new Set(teamOrder);
+  const newIds = allIds.filter(id => !existingIds.has(id));
+
+  // Remove deleted
+  const validOrder = teamOrder.filter(id => allIds.includes(id));
+
+  const next = [...validOrder, ...newIds];
+  const changed = next.length !== teamOrder.length || next.some((id, i) => id !== teamOrder[i]);
+
+  if (changed) setTeamOrder(next);
+}, [people, teamOrder]);
 
 useEffect(() => {
   if (!hydrated) return;
