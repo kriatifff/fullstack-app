@@ -1,4 +1,5 @@
-const base = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+const base = ((import.meta.env.VITE_API_URL as string) || "https://pw-planner.onrender.com").replace(/\/$/, "");
+
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${base}${path}`, {
