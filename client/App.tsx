@@ -8,13 +8,18 @@ import { Person, Project, Assignment, ProjectTeamsMap, VacationsMap, ViewMode, P
 import { Button, Modal, Input, Select, Badge } from './components/UI';
 import { TeamView, ProjectView, AnalyticsTeamView, PersonDetailPage, ProjectDetailPage, AnalyticsWriteOffsView } from './components/Views';
 import { FinancialAnalyticsView } from './components/Analytics';
-import { apiGetState, apiSaveState } from "./api";
-import { apiGetState, apiSaveState } from './api';
-  
-  startOfISOWeek, addWeeks, fmtISO, rndId, isWeekEnded, fteToHours, personWeekTotal, 
-  effectiveFactHours, personWeekFactTotal, fmtMoney, VAT_RATE, parseDate, addDays,
-  sumFactForPersonProject, yearWeekMondays
+import { apiGetState, apiSaveState } from "./api";  
+import {
+  effectiveFactHours,
+  personWeekFactTotal,
+  fmtMoney,
+  VAT_RATE,
+  parseDate,
+  addDays,
+  sumFactForPersonProject,
+  yearWeekMondays
 } from './utils';
+
 
 // --- SEED DATA ---
 const baseMonday = startOfISOWeek(new Date());
@@ -136,13 +141,16 @@ useEffect(() => {
 useEffect(() => {
   (async () => {
     try {
-      const remote = await apiGetState();
-      if (remote) {
-        const toSetMap = (raw: any) => {
-          const out: any = {};
-          for (const k in (raw || {})) out[k] = new Set(raw[k] || []);
-          return out;
-        };
+     const remote = await apiGetState();
+const state = (remote && (remote as any).data) ? (remote as any).data : remote;
+
+if (state) {
+  setPeople(state.people ?? seedPeople);
+  setRoles(state.roles ?? ["dev","designer","manager","pm","qa","other"]);
+  setProjects(state.projects ?? seedProjects);
+  setAssignments(state.assignments ?? []);
+}
+
 
         setPeople(remote.people ?? seedPeople);
         setRoles(remote.roles ?? ["dev","designer","manager","pm","qa","other"]);
