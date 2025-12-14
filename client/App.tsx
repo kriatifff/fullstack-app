@@ -86,29 +86,31 @@ const App = () => {
   });
   const [hydrated, setHydrated] = useState(false);
 
-  const [hydrated, setHydrated] = useState(false);
 useEffect(() => {
   (async () => {
     try {
       const remote = await apiGetState();
-      if (remote) {
-        setPeople(remote.people ?? seedPeople);
-        setRoles(remote.roles ?? ["dev","designer","manager","pm","qa","other"]);
-        setProjects(remote.projects ?? seedProjects);
-        setAssignments(remote.assignments ?? []);
+      const state = (remote && (remote as any).data) ? (remote as any).data : remote;
 
-        // Восстанавливаем Set-ы
+      if (state) {
         const toSetMap = (raw: any) => {
           const out: any = {};
           for (const k in (raw || {})) out[k] = new Set(raw[k] || []);
           return out;
         };
 
-        setProjectTeams(toSetMap(remote.projectTeams));
-        setProjectWriteOffTeams(toSetMap(remote.projectWriteOffTeams));
-        setProjectMemberHours(remote.projectMemberHours ?? {});
-        setVacations(toSetMap(remote.vacations));
-        setTeamOrder(remote.teamOrder ?? []);
+        setPeople(state.people ?? seedPeople);
+        setRoles(state.roles ?? ["dev", "designer", "manager", "pm", "qa", "other"]);
+        setProjects(state.projects ?? seedProjects);
+        setAssignments(state.assignments ?? []);
+
+        setProjectTeams(toSetMap(state.projectTeams));
+        setProjectWriteOffTeams(toSetMap(state.projectWriteOffTeams));
+        setProjectMemberHours(state.projectMemberHours ?? {});
+        setVacations(toSetMap(state.vacations));
+
+        // если у тебя есть teamOrder:
+        setTeamOrder(state.teamOrder ?? []);
       }
     } catch (e) {
       console.warn("Failed to load remote state:", e);
@@ -117,6 +119,7 @@ useEffect(() => {
     }
   })();
 }, []);
+
 
   
   // Custom Sort Order for Team
