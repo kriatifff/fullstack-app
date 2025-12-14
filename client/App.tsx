@@ -116,8 +116,7 @@ useEffect(() => {
     } finally {
       setHydrated(true);
     }
-  })();
-}, []);
+};
 
 
 
@@ -125,7 +124,7 @@ useEffect(() => {
   // Custom Sort Order for Team
   const [teamOrder, setTeamOrder] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('pw_teamOrder') || '[]'); } catch { return []; }
-  });
+};
 
   // Ensure team order consistency
   useEffect(() => {
@@ -168,51 +167,11 @@ if (state) {
       console.warn("Failed to load remote state:", e);
     } finally {
       setHydrated(true);
-    }
-  })();
+   });
 }, []);
 
 useEffect(() => {
   if (!hydrated) return;
-
-  const toSerializable = (raw: any) => {
-    const out: any = {};
-    for (const k in (raw || {})) out[k] = Array.from(raw[k] || []);
-    return out;
-  };
-
-  const payload = {
-    people,
-    roles,
-    projects,
-    assignments,
-    projectTeams: toSerializable(projectTeams),
-    projectWriteOffTeams: toSerializable(projectWriteOffTeams),
-    projectMemberHours,
-    vacations: toSerializable(vacations),
-    teamOrder,
-  };
-
-  const t = setTimeout(() => {
-    apiSaveState(payload).catch((e) => console.warn("saveState failed", e));
-  }, 800);
-
-  return () => clearTimeout(t);
-}, [
-  hydrated,
-  people,
-  roles,
-  projects,
-  assignments,
-  projectTeams,
-  projectWriteOffTeams,
-  projectMemberHours,
-  vacations,
-  teamOrder,
-]);
-
-
-  if (!hydrated) return; // <-- это “не перетираем сервер localStorage при старте”
 
   const toSerializable = (raw: any) => {
     const out: any = {};
